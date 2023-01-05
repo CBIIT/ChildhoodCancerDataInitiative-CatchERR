@@ -347,6 +347,67 @@ sink()
 
 ###############
 #
+# Assign GUIDS to files
+#
+###############
+
+cat("The file based nodes will now have a GUID assigned to each unique file.")
+
+
+#Function to determine if operating system is OS is mac or linux, to run the UUID generation.
+get_os <- function(){
+  sysinf <- Sys.info()
+  if (!is.null(sysinf)){
+    os <- sysinf['sysname']
+    if (os == 'Darwin')
+      os <- "osx"
+  } else { ## mystery machine
+    os <- .Platform$OS.type
+    if (grepl("^darwin", R.version$os))
+      os <- "osx"
+    if (grepl("linux-gnu", R.version$os))
+      os <- "linux"
+  }
+  tolower(os)
+}
+
+for (node in nodes_present){
+  df=workbook_list[node][[1]]
+  properties=colnames(df)
+  if ("file_url_in_cds" %in% properties & "file_name" %in% properties & "file_size" %in% properties & "md5sum" %in% properties & "dcf_indexd_guid" %in% properties){
+    df_index=df%>%
+      select(file_url_in_cds, file_name, file_size, md5sum, dcf_indexd_guid)%>%
+      mutate(GUID=NA)
+    df_index=unique(df_index)
+    #For each unique file, apply a uuid to the GUID column. There is logic to handle this in both OSx and Linux, as the UUID call is different from R to the console.
+    pb=txtProgressBar(min=0,max=dim(df_index)[1],style = 3)
+    cat("\nGUID creation for the following node: ", node,"\n", sep = "")
+    for (x in 1:dim(df_index)[1]){
+      setTxtProgressBar(pb,x)
+      if (get_os()=="osx"){
+        uuid=tolower(system(command = "uuidgen", intern = T))
+      }else{
+        uuid=system(command = "uuid", intern = T)
+      }
+      df_index$GUID[x]=uuid
+    }
+    
+    #Take the uuids in the GUID column and paste on the 'dg.4DCF/' prefix to create GUIDs for all the files.
+    df_index=mutate(df_index,GUID=paste("dg.4DFC/",GUID,sep = ""))
+    
+    df=suppressMessages(left_join(df,df_index))
+    
+    df=df%>%
+      mutate(dcf_indexd_guid=GUID)%>%
+      select(-GUID)
+    
+    workbook_list[node][[1]] = df
+  }
+}
+
+
+###############
+#
 # Write out
 #
 ###############
