@@ -12,7 +12,7 @@ Rscript --vanilla CCDI-CatchERR.R -h
 ```
 Usage: CCDI-CatchERR.R [options]
 
-CCDI-CatchERR v1.0.0
+CCDI-CatchERR v1.0.1
 
 Options:
 	-f CHARACTER, --file=CHARACTER
