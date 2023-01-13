@@ -1,4 +1,4 @@
-# ChildrensCancerDataInitiative-CatchERR
+# ChildhoodCancerDataInitiative-CatchERR
 This script will take a CCDI metadata manifest file and try to blindly fix the most common errors before the validation step.
 
 At this time, the script will catch errors for case in enumerated values, white space in values, and incomplete urls for files.
@@ -33,7 +33,7 @@ Rscript --vanilla CCDI-CatchERR.R -f test_files/b_all_fail_CCDI_Submission_Templ
 
 Process Complete.
 
-The output file can be found here: ChildrensCancerDataInitiative-CatchERR/test_files/
+The output file can be found here: ChildhoodCancerDataInitiative-CatchERR/test_files/
 ```
 
 This will return an output file log that will tell you what changes were made, as well as a new manifest that will have the new changes applied.
