@@ -389,7 +389,9 @@ for (node in nodes_present){
       }else{
         uuid=system(command = "uuid", intern = T)
       }
-      df_index$GUID[x]=uuid
+      if (is.na(df_index$GUID[x])){
+        df_index$GUID[x]=uuid
+      }
     }
     
     #Take the uuids in the GUID column and paste on the 'dg.4DCF/' prefix to create GUIDs for all the files.
