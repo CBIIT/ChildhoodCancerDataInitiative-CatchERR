@@ -59,7 +59,7 @@ option_list = list(
 )
 
 #create list of options and values for file input
-opt_parser = OptionParser(option_list=option_list, description = "\nCCDI-CatchERR v1.0.1")
+opt_parser = OptionParser(option_list=option_list, description = "\nCCDI-CatchERR v1.0.2")
 opt = parse_args(opt_parser)
 
 #If no options are presented, return --help, stop and print the following message.
@@ -270,7 +270,33 @@ for (node in nodes_present){
   workbook_list[node][[1]]=df
 }
 
+##############
+#
+# ACL pattern check
+#
+##############
+cat("\n\nThe value for ACL will be check to determine it follows the required structure, ['.*'].\n----------\n")
 
+acl_check=unique(workbook_list['study_admin'][[1]]$acl)
+
+if (length(acl_check)>1){
+  cat("ERROR: There is more than one ACL associated with this study and workbook. Please only submit one ACL and corresponding data to a workbook.\n")
+}else if(length(acl_check)==1){
+  if (is.na(acl_check)){
+    cat("ERROR: Please submit an ACL value to the 'study_admin.acl' property.\n")
+  }else if (!is.na(acl_check)){
+    acl_test=grepl(pattern = "\\[\\'.*\\'\\]" , x= acl_check)
+    if (!acl_test){
+      acl_fix=paste("['",acl_check,"']", sep="")
+      cat("The following ACL does not match the required structure, it will be changed:\n\t\t", acl_check, " ---> ", acl_fix,"\n",sep = "")
+      workbook_list['study_admin'][[1]]$acl=acl_fix
+    }else if (acl_test){
+      cat("The following ACL matches the required structure:\n\t\t", acl_check,"\n",sep = "")
+    }
+  }
+}else{
+  cat("ERROR: Something is wrong with the ACL value submitted in the study_admin.acl property.\n")
+}
 
 
 ##############
