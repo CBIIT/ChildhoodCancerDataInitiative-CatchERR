@@ -269,6 +269,44 @@ for (node in nodes_present){
   }
   workbook_list[node][[1]]=df
 }
+      
+                 
+##############
+#
+# Check and replace for non-UTF-8 characters
+#
+##############
+
+cat("\n\nCertain characters do not handle being transformed into certain file types, due to this, the following characters were changed.\n----------\n")
+
+#initialize table and then populate the key value pairs for the value that is present and what it needs to be converted to.
+df_translations=tibble(value="",translation="")[0,]
+
+#Expression to expand further pairs, copy the following line and add the new value pair.
+df_translations=rbind(df_translations,tibble(value="™",translation="(TM)"))
+
+
+
+
+#Grep through column and rows looking for values to change.
+for (node in nodes_present){
+  df_translate=workbook_list[node][[1]]
+  cat(paste("\n",node,"\n",sep = ""))
+  for (value in 1:dim(df_translations)[1]){
+    df_value=df_translations[value,"value"]
+    df_transvalue=df_translations[value,"translation"]
+    colnums=grep(pattern = df_value, df_translate)
+    for (colnum in colnums){
+      rownums=grep(pattern = df_value, df_translate[,colnum][[1]])
+      for (rownum in rownums){
+        df_translate[rownum,colnum]=stri_replace_all_fixed(str = df_translate[rownum,colnum], pattern = df_value, replacement = df_transvalue)
+      }
+      cat(paste("\tWARNING: ",colnames(df_translate[,colnum])," contains value(s) that were changed to ensure UTF-8.\n\t\tThe value that was changed: ",df_value," ---> ",df_transvalue,"\n", sep = ""))
+      workbook_list[node][[1]]=df_translate
+    }
+  }
+}
+   
 
 ##############
 #
