@@ -59,7 +59,7 @@ option_list = list(
 )
 
 #create list of options and values for file input
-opt_parser = OptionParser(option_list=option_list, description = "\nCCDI-CatchERR v1.0.3")
+opt_parser = OptionParser(option_list=option_list, description = "\nCCDI-CatchERR v1.0.4")
 opt = parse_args(opt_parser)
 
 #If no options are presented, return --help, stop and print the following message.
@@ -202,20 +202,34 @@ if (!is.null(incomplete_node)){
 #
 ##################
 
-cat("\n\nThe following columns have controlled vocabulary on the 'Terms and Value Sets' page of the template file:\n----------")
+cat("\n\nThe following columns have controlled vocabulary on the 'Terms and Value Sets' page of the template file. If the values present do not match, they will noted and in some cases:\n----------")
+
+#Enumerated Array properties
+enum_arrays=c('therapeutic_agents',"treatment_type","study_data_types","morphology","primary_site","race")
 
 for (node in nodes_present){
   cat("\n",node,"\n",sep = "")
   #initialize data frames and properties for tests
   df=workbook_list[node][[1]]
   properties=colnames(df)
-  #Enumerated Array properties
-  enum_arrays=c('therapeutic_agents',"treatment_type","study_data_types","morphology","primary_site","race")
-  
-  #For the '_id' properties, make sure there are no illegal characters and it only has "Only the following characters can be included in the ID: English letters, Arabic numerals, period (.), hyphen (-), underscore (_), at symbol (@), and the pound sign (#)."
+ 
   for (property in properties){
     if (property %in% names(df_all_terms)){
+      #for enum_array properties
       if (property %in% enum_arrays){
+        
+        #Sort each array before checks
+        for (array_value_pos in 1:length(df[property][[1]])){
+          array_value=df[property][[1]][array_value_pos]
+          if (grepl(pattern = ";", array_value)){
+            
+            #alphabetize array
+            array_value=paste(sort(trimws(unique(stri_split_fixed(str = array_value, pattern = ";")[[1]]))), collapse = ";")
+            df[property][[1]][array_value_pos]=array_value
+          }
+        }
+        
+        #Set up to find values that are not in the expected permissible value (PV) list
         unique_values=unique(df[property][[1]])
         unique_values=unique(trimws(unlist(stri_split_fixed(str = unique_values,pattern = ";"))))
         unique_values=unique_values[!is.na(unique_values)]
@@ -228,10 +242,46 @@ for (node in nodes_present){
                   cat(paste("\tERROR: ",property," property contains a value that is not recognized: ", check_value,"\n",sep = ""))
                   #NEW ADDITION to push the most correct value into the proper case
                   if (tolower(as.character(check_value))%in%tolower(df_all_terms[property][[1]][[1]])){
+                    
+                    #determine the correct PV
                     pv_pos=grep(pattern = TRUE, x = tolower(df_all_terms[property][[1]][[1]])%in%tolower(as.character(check_value)))
-                    value_pos=grep(pattern = TRUE, x = df[property][[1]]%in%as.character(check_value))
-                    df[value_pos,property]<-df_all_terms[property][[1]][[1]][pv_pos]
-                    cat(paste("\t\tThe value in ",property," was changed: ", check_value," ---> ",df_all_terms[property][[1]][[1]][pv_pos],"\n",sep = ""))
+                    
+                    #find all the value positions for the property with wrong value
+                    value_positions=grep(pattern = check_value, x = df[property][[1]])
+                    replacement_value=df_all_terms[property][[1]][[1]][pv_pos]
+                    #create a filter to remove positions that are erroneously selected and either find only values that are the whole string or the string in part of an array list.
+                    for (value_pos in value_positions){
+                      previous_value=df[value_pos,property][[1]]
+                      if (nchar(previous_value)!=nchar(replacement_value)){
+                        array_pattern=c(paste(replacement_value,";",sep = ""),paste(";",replacement_value,sep = ""))
+                        array_pos=grep(pattern = tolower(paste(array_pattern,collapse = "|")), x = tolower(previous_value))
+                        if (length(array_pos)==0){
+                          value_positions=value_positions[!(value_positions %in% value_pos)]
+                        }
+                      }
+                    }
+                    
+                    #create dataframe to capture values changed as to not overload with lines
+                    prev_repl_df=tibble(previous_value_col=NA, replacement_value_col=NA)
+                    prev_repl_df_add=tibble(previous_value_col=NA, replacement_value_col=NA)
+                    prev_repl_df=prev_repl_df[0,]
+                    
+                    #for each position, change the value in the array.
+                    for (value_pos in value_positions){
+                      previous_value=df[value_pos,property][[1]]
+                      replacement_string=stri_replace_all_fixed(str =previous_value, pattern = as.character(check_value), replacement = replacement_value)
+                      df[value_pos,property]<-replacement_string
+                      
+                      prev_repl_df_add$previous_value_col=previous_value
+                      prev_repl_df_add$replacement_value_col=replacement_string
+                      
+                      prev_repl_df=unique(rbind(prev_repl_df,prev_repl_df_add))
+                    }
+                    
+                    
+                    for ( prdf in 1:dim(prev_repl_df)[1]){
+                      cat(paste("\t\tThe value in ",property,", was changed: ", prev_repl_df$previous_value_col[prdf]," ---> ",prev_repl_df$replacement_value_col[prdf],"\n",sep = ""))
+                    }
                   }
                 }
               }
@@ -240,7 +290,9 @@ for (node in nodes_present){
             cat(paste("\tPASS:",property,"property contains all valid values.\n"))
           }
         }
-      }else{
+      }
+      #for non-enum_array properties
+      else{
         unique_values=unique(df[property][[1]])
         unique_values=unique_values[!is.na(unique_values)]
         if (length(unique_values)>0){
@@ -343,7 +395,7 @@ if (length(acl_check)>1){
 #
 ##############
 
-cat("\n\nThe following url columns (file_url_in_cds), check to make sure the full file url is present:\n----------")
+cat("\n\nCheck the following url columns (file_url_in_cds), to make sure the full file url is present and fix entries that are not:\n----------")
 
 for (node in nodes_present){
   
@@ -411,11 +463,11 @@ sink()
 
 ###############
 #
-# Assign GUIDS to files
+# Assign guids to files
 #
 ###############
 
-cat("The file based nodes will now have a GUID assigned to each unique file.")
+cat("\nThe file based nodes will now have a guid assigned to each unique file.\n")
 
 
 #Function to determine if operating system is OS is mac or linux, to run the UUID generation.
@@ -436,36 +488,35 @@ get_os <- function(){
 }
 
 for (node in nodes_present){
+  cat("\nguid creation for the following node: ", node,"\n", sep = "")
   df=workbook_list[node][[1]]
   properties=colnames(df)
   if ("file_url_in_cds" %in% properties & "file_name" %in% properties & "file_size" %in% properties & "md5sum" %in% properties & "dcf_indexd_guid" %in% properties){
     df_index=df%>%
       select(file_url_in_cds, file_name, file_size, md5sum, dcf_indexd_guid)%>%
-      mutate(GUID=NA)
+      mutate(guid=dcf_indexd_guid)
     df_index=unique(df_index)
-    #For each unique file, apply a uuid to the GUID column. There is logic to handle this in both OSx and Linux, as the UUID call is different from R to the console.
+    #For each unique file, apply a uuid to the guid column. There is logic to handle this in both OSx and Linux, as the UUID call is different from R to the console.
     pb=txtProgressBar(min=0,max=dim(df_index)[1],style = 3)
-    cat("\nGUID creation for the following node: ", node,"\n", sep = "")
+    
     for (x in 1:dim(df_index)[1]){
       setTxtProgressBar(pb,x)
-      if (get_os()=="osx"){
-        uuid=tolower(system(command = "uuidgen", intern = T))
-      }else{
-        uuid=system(command = "uuid", intern = T)
-      }
-      if (is.na(df_index$GUID[x])){
-        df_index$GUID[x]=uuid
+      if (is.na(df_index$guid[x])){
+        if (get_os()=="osx"){
+          uuid=tolower(system(command = "uuidgen", intern = T))
+        }else{
+          uuid=system(command = "uuid", intern = T)
+        }
+        #Take the uuids in the guid column and paste on the 'dg.4DCF/' prefix to create guids for all the files.
+        df_index$guid[x]=paste("dg.4DFC/",uuid,sep = "")
       }
     }
-    
-    #Take the uuids in the GUID column and paste on the 'dg.4DCF/' prefix to create GUIDs for all the files.
-    df_index=mutate(df_index,GUID=paste("dg.4DFC/",GUID,sep = ""))
     
     df=suppressMessages(left_join(df,df_index))
     
     df=df%>%
-      mutate(dcf_indexd_guid=GUID)%>%
-      select(-GUID)
+      mutate(dcf_indexd_guid=guid)%>%
+      select(-guid)
     
     workbook_list[node][[1]] = df
   }
