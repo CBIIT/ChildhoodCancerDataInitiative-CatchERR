@@ -3,7 +3,7 @@ This script will take a CCDI metadata manifest file and try to blindly fix the m
 
 At this time, the script will catch errors for case in enumerated values, white space in values, and incomplete urls for files.
 
-To run the script on a CDS template, run the following command in a terminal where R is installed for help.
+To run the script on a CCDI template, run the following command in a terminal where R is installed for help.
 
 ```
 Rscript --vanilla CCDI-CatchERR.R -h
