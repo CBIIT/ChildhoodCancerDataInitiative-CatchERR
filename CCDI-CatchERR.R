@@ -534,7 +534,7 @@ for (node in nodes_present){
 wb=openxlsx::loadWorkbook(file = file_path)
 
 #progress bar
-pb=txtProgressBar(min=0,max=length(sheet_names),style = 3)
+pb=txtProgressBar(min=0,max=length(nodes_present),style = 3)
 x=0
 
 for (node in nodes_present){
