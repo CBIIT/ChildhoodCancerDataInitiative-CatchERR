@@ -533,6 +533,8 @@ for (node in nodes_present){
 
 wb=openxlsx::loadWorkbook(file = file_path)
 
+cat("\n\nWriting out the CatchERR file.\n")
+
 #progress bar
 pb=txtProgressBar(min=0,max=length(nodes_present),style = 3)
 x=0
