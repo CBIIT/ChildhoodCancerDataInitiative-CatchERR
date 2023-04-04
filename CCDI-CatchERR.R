@@ -531,9 +531,15 @@ for (node in nodes_present){
 
 #Write out file
 
-  wb=openxlsx::loadWorkbook(file = file_path)
+wb=openxlsx::loadWorkbook(file = file_path)
+
+#progress bar
+pb=txtProgressBar(min=0,max=length(sheet_names),style = 3)
+x=0
 
 for (node in nodes_present){
+  x=x+1
+  setTxtProgressBar(pb,x)
   df=workbook_list[node][[1]]
   openxlsx::deleteData(wb, sheet = node,rows = 1:(dim(df)[1]+1),cols=1:(dim(df)[2]+1),gridExpand = TRUE)
   openxlsx::writeData(wb=wb, sheet=node, df)
