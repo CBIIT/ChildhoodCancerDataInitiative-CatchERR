@@ -367,7 +367,7 @@ for (node in nodes_present){
 ##############
 cat("\n\nThe value for ACL will be check to determine it follows the required structure, ['.*'].\n----------\n")
 
-acl_check=unique(workbook_list['study_admin'][[1]]$acl)
+acl_check=unique(workbook_list['study'][[1]]$acl)
 
 if (length(acl_check)>1){
   cat("ERROR: There is more than one ACL associated with this study and workbook. Please only submit one ACL and corresponding data to a workbook.\n")
@@ -379,7 +379,7 @@ if (length(acl_check)>1){
     if (!acl_test){
       acl_fix=paste("['",acl_check,"']", sep="")
       cat("The following ACL does not match the required structure, it will be changed:\n\t\t", acl_check, " ---> ", acl_fix,"\n",sep = "")
-      workbook_list['study_admin'][[1]]$acl=acl_fix
+      workbook_list['study'][[1]]$acl=acl_fix
     }else if (acl_test){
       cat("The following ACL matches the required structure:\n\t\t", acl_check,"\n",sep = "")
     }
