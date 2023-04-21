@@ -202,7 +202,7 @@ if (!is.null(incomplete_node)){
 #
 ##################
 
-cat("\n\nThe following columns have controlled vocabulary on the 'Terms and Value Sets' page of the template file. If the values present do not match, they will noted and in some cases:\n----------")
+cat("\n\nThe following columns have controlled vocabulary on the 'Terms and Value Sets' page of the template file. If the values present do not match, they will noted and in some cases the values will be replaced:\n----------")
 
 #Enumerated Array properties
 enum_arrays=c('therapeutic_agents',"treatment_type","study_data_types","morphology","primary_site","race")
