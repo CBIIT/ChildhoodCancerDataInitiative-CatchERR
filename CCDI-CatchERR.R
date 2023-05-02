@@ -415,14 +415,9 @@ for (node in nodes_present){
       #skip if bucket_url is NA (no associated url for file)
       if (!is.na(bucket_url)){
         #see if the file name is found in the bucket_url
-        if (grepl(pattern = bucket_file,x = bucket_url)){
-          #download file, run md5sum, copy to data frame and delete file
-          file_name=basename(bucket_url)
-          if (bucket_file!=file_name){
-            cat(paste("\n\tERROR: There is an unresolvable issue with the file url for file: ",bucket_file,sep = ""))
-          }
-        #if the file url has to be reworked to include the file with the base directory.
-        }else{
+        file_name=basename(bucket_url)
+        if (bucket_file!=file_name){
+          #the file url has to be reworked to include the file with the base directory.
           if (substr(bucket_url,start = nchar(bucket_url),stop = nchar(bucket_url))=="/"){
             #fix the 'file_url_in_cds' section to have the full file location
             bucket_url_change=paste(bucket_url,bucket_file,sep = "")
