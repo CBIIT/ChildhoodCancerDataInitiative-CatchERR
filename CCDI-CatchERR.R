@@ -39,6 +39,9 @@ suppressMessages(library(optparse,verbose = F))
 suppressMessages(library(tools,verbose = F))
 
 
+suppressMessages(library(tidyr,verbose = F))
+
+
 #remove objects that are no longer used.
 rm(list_of_packages)
 rm(new.packages)
@@ -189,7 +192,6 @@ nodes_present=names(workbook_list)
 
 #Start write out for log file
 sink(paste(path,output_file,".txt",sep = ""))
-
 
 if (!is.null(incomplete_node)){
   cat("\n\tWARNING: The following node(s), ",paste(incomplete_node, collapse = ", ", sep = ),", did not contain any data except a linking value and type.\n" ,sep = "")
@@ -404,53 +406,85 @@ for (node in nodes_present){
   properties=colnames(df)
   
   
-  if ("file_url_in_cds" %in% colnames(df)){
+  
+  
+  if ("file_url_in_cds" %in% properties){
     cat("\n",node,sep = "")
     
-    #Fix urls if the url does not contain the file name but only the base url
-    #If full file path is in the url
-    for (bucket_loc in 1:dim(df)[1]){
-      bucket_url=df$file_url_in_cds[bucket_loc]
-      bucket_file=df$file_name[bucket_loc]
-      #skip if bucket_url is NA (no associated url for file)
-      if (!is.na(bucket_url)){
-        #see if the file name is found in the bucket_url
-        file_name=basename(bucket_url)
-        if (bucket_file!=file_name){
-          #the file url has to be reworked to include the file with the base directory.
-          if (substr(bucket_url,start = nchar(bucket_url),stop = nchar(bucket_url))=="/"){
-            #fix the 'file_url_in_cds' section to have the full file location
-            bucket_url_change=paste(bucket_url,bucket_file,sep = "")
-            #double check changes made
-            file_name=basename(bucket_url_change)
-            if (bucket_file!=file_name){
-              cat(paste("\n\tERROR: There is an unresolvable issue with the file url for file: ",bucket_file,sep = ""))
-            }else{
-              #if file name is still found, then change the url
-              df$file_url_in_cds[bucket_loc]=bucket_url_change
-              cat(paste("\n\tWARNING: The file location for the file, ", bucket_file,", has been changed:\n\t\t", bucket_url, " ---> ", bucket_url_change,sep = ""))
-            }
-          }else{
-            #fix the 'file_url_in_cds' section to have the full file location
-            bucket_url_change=paste(bucket_url,"/",bucket_file,sep = "")
-            #double check changes made
-            file_name=basename(bucket_url_change)
-            if (bucket_file!=file_name){
-              cat(paste("\n\tERROR: There is an unresolvable issue with the file url for file: ",bucket_file,sep = ""))
-            }else{
-              #if file name is still found, then change the url
-              df$file_url_in_cds[bucket_loc]=bucket_url_change
-              cat(paste("\n\tWARNING: The file location for the file, ", bucket_file,", has been changed:\n\t\t", bucket_url, " ---> ", bucket_url_change,sep = ""))
-            }
-          }
+    #look at all the urls in the data frame
+    node_urls=df %>%
+      select(file_url_in_cds)%>%
+      filter(!is.na(file_url_in_cds))%>%
+      separate(file_url_in_cds,c("s3","blank","base_urls","everything_else"),sep = "/", extra = "merge", fill= "right")%>%
+      select(base_urls)
+    
+    #pull out all the unique base bucket urls
+    node_urls=unique(node_urls$base_urls)
+    node_urls=node_urls[!is.na(node_urls)]
+    
+    #blank list of bad url_locations
+    bad_url_locs=c()
+    
+    #for each possible bucket based on the base urls in file_url_in_cds
+    #go through and see if the values for the url can be filled in based on file_name and size
+    for (node_url in node_urls){
+      #pull bucket metadata
+      
+      metadata_files=suppressMessages(suppressWarnings(system(command = paste("aws s3 ls --recursive s3://", node_url,"/",sep = ""),intern = TRUE)))
+      
+      #fix bucket metadata to have fixed delimiters of one space
+      while (any(grepl(pattern = "  ",x = metadata_files))==TRUE){
+        metadata_files=stri_replace_all_fixed(str = metadata_files,pattern = "  ",replacement = " ")
+      }
+      
+      #Break bucket string into a data frame and clean up
+      bucket_metadata=data.frame(all_metadata=metadata_files)
+      bucket_metadata=separate(bucket_metadata, all_metadata, into = c("date","time","file_size","file_path"),sep = " ", extra = "merge")%>%
+        select(-date, -time)%>%
+        mutate(file_path=paste("s3://",node_url,"/",file_path,sep = ""), file_name=basename(file_path))
+      
+      #find bad url locs based on the full file path and whether it can be found in the url manifest.
+      
+      for (bucket_loc in 1:dim(df)[1]){
+        bucket_url=df$file_url_in_cds[bucket_loc]
+        
+        url_search_response=bucket_url %in% bucket_metadata$file_path
+        
+        if (!url_search_response){
+          bad_url_locs=c(bad_url_locs, bucket_loc)
+        }
+        
+      }
+      
+      #Go through each bad location and determine if the correct url location can be determined on file_name and file_size.
+      for (bad_url_loc in bad_url_locs){
+        #find file name and file size
+        file_name_find=df$file_name[bad_url_loc]
+        file_size_find=df$file_size[bad_url_loc]
+        
+        #filter the df to see if there is exactly one value that matches
+        filtered_df=bucket_metadata[grep(pattern = TRUE, x = bucket_metadata$file_name %in% file_name_find),]
+        filtered_df=filtered_df[grep(pattern = TRUE, x = filtered_df$file_size %in% file_size_find),]
+        
+        if (dim(filtered_df)[1]==1){
+          #output of url change
+          cat(paste("\n\tWARNING: The file location for the file, ", file_name_find,", has been changed:\n\t\t", df$file_url_in_cds[bad_url_loc], " ---> ", filtered_df$file_path,sep = ""))
+          
+          #apply change to df
+          df$file_url_in_cds[bad_url_loc]=filtered_df$file_path
+          
+          #remove the position from the list
+          bad_url_locs=bad_url_locs[!bad_url_locs %in% bad_url_loc]
+          
+        }else{
+          cat(paste("\n\tERROR: There is an unresolvable issue with the file url for file: ",file_name_find,sep = ""))
         }
       }
+      
     }
-    cat("\n")
+    workbook_list[node][[1]]=df
   }
-  workbook_list[node][[1]]=df
 }
-
 
 #close log file write out
 sink()
