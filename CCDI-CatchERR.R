@@ -22,7 +22,7 @@
 ##################
 
 #List of needed packages
-list_of_packages=c("readr","dplyr","openxlsx","stringi","readxl","janitor","optparse","tools")
+list_of_packages=c("readr","dplyr","tidyr","openxlsx","stringi","readxl","janitor","optparse","tools")
 
 #Based on the packages that are present, install ones that are required.
 new.packages <- list_of_packages[!(list_of_packages %in% installed.packages()[,"Package"])]
@@ -31,6 +31,7 @@ suppressMessages(if(length(new.packages)) install.packages(new.packages, repos =
 #Load libraries.
 suppressMessages(library(readr,verbose = F))
 suppressMessages(library(dplyr,verbose = F))
+suppressMessages(library(tidyr,verbose = F))
 suppressMessages(library(readxl,verbose = F))
 suppressMessages(library(openxlsx, verbose = F))
 suppressMessages(library(stringi,verbose = F))
@@ -38,8 +39,6 @@ suppressMessages(library(janitor,verbose = F))
 suppressMessages(library(optparse,verbose = F))
 suppressMessages(library(tools,verbose = F))
 
-
-suppressMessages(library(tidyr,verbose = F))
 
 
 #remove objects that are no longer used.
@@ -62,7 +61,7 @@ option_list = list(
 )
 
 #create list of options and values for file input
-opt_parser = OptionParser(option_list=option_list, description = "\nCCDI-CatchERR v1.0.4")
+opt_parser = OptionParser(option_list=option_list, description = "\nCCDI-CatchERR v1.1.0")
 opt = parse_args(opt_parser)
 
 #If no options are presented, return --help, stop and print the following message.
