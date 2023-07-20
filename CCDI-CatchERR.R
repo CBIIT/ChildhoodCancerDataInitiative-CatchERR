@@ -40,7 +40,6 @@ suppressMessages(library(optparse,verbose = F))
 suppressMessages(library(tools,verbose = F))
 
 
-
 #remove objects that are no longer used.
 rm(list_of_packages)
 rm(new.packages)
@@ -404,9 +403,6 @@ for (node in nodes_present){
   df=workbook_list[node][[1]]
   properties=colnames(df)
   
-  
-  
-  
   if ("file_url_in_cds" %in% properties){
     cat("\n",node,sep = "")
     
@@ -479,8 +475,8 @@ for (node in nodes_present){
           cat(paste("\n\tERROR: There is an unresolvable issue with the file url for file: ",file_name_find,sep = ""))
         }
       }
-      
     }
+    cat("\n")
     workbook_list[node][[1]]=df
   }
 }
