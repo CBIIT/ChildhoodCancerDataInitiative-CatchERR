@@ -338,8 +338,6 @@ df_translations=tibble(value="",translation="")[0,]
 df_translations=rbind(df_translations,tibble(value="™",translation="(TM)"))
 
 
-
-
 #Grep through column and rows looking for values to change.
 for (node in nodes_present){
   df_translate=workbook_list[node][[1]]
