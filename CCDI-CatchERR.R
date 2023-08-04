@@ -393,7 +393,7 @@ if (length(acl_check)>1){
 #
 ##############
 
-cat("\n\nCheck the following url columns (file_url_in_cds), to make sure the full file url is present and fix entries that are not:\n----------")
+cat("\n\nCheck the following url columns (file_url_in_cds), to make sure the full file url is present and fix entries that are not:\n----------\n\nWARNING: If you are seeing a large number of 'ERROR: There is an unresolvable issue...', it is likely there are two or more buckets and this is the script trying and failing at checks against the other bucket for the file.")
 
 for (node in nodes_present){
   
@@ -415,12 +415,14 @@ for (node in nodes_present){
     node_urls=unique(node_urls$base_urls)
     node_urls=node_urls[!is.na(node_urls)]
     
-    #blank list of bad url_locations
-    bad_url_locs=c()
+    
     
     #for each possible bucket based on the base urls in file_url_in_cds
     #go through and see if the values for the url can be filled in based on file_name and size
     for (node_url in node_urls){
+      #blank list of bad url_locations
+      bad_url_locs=c()
+      
       #pull bucket metadata
       
       metadata_files=suppressMessages(suppressWarnings(system(command = paste("aws s3 ls --recursive s3://", node_url,"/",sep = ""),intern = TRUE)))
