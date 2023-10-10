@@ -169,7 +169,8 @@ for (node in dict_nodes){
   if (dim(df_empty_test)[1]>0){
     #if the only columns in the resulting data frame are only linking properties (node.node_id), do not add it.
     if (any(!grepl(pattern = "\\.",x = colnames(df_empty_test)))){
-      #add the data frame to the workbook
+      #add the unique data frame to the workbook
+      df=unique(df)
       workbook_list=append(x = workbook_list,values = list(df))
       names(workbook_list)[length(workbook_list)]<-node
     }else{
@@ -195,6 +196,26 @@ if (!is.null(incomplete_node)){
   cat("\n\tWARNING: The following node(s), ",paste(incomplete_node, collapse = ", ", sep = ),", did not contain any data except a linking value and type.\n" ,sep = "")
 }
 
+
+#############
+#
+# Check for properties in columns that are not in Dictionary
+#
+#############
+
+for (node in nodes_present){
+  df=workbook_list[node][[1]]
+  
+  col_test=colnames(df)[!colnames(df) %in% 'type' ]
+  col_test=col_test[!grepl(pattern = "\\.", col_test)]
+  
+  if (!all(col_test %in% df_dict$Property)){
+    nondict_cols=col_test[!col_test %in% df_dict$Property]
+    
+    cat("\n",node,"\n",sep = "")
+    cat("\n\tWARNING: There is a column header that is not expected based on the Dictionary: \n\t\t", paste(nondict_cols,collapse = "\n\t\t"), sep = "")
+  }
+}
 
 ##################
 #
