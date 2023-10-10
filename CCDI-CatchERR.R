@@ -587,8 +587,9 @@ x=0
 for (node in nodes_present){
   x=x+1
   setTxtProgressBar(pb,x)
+  df_size=suppressMessages(read_xlsx(path = file_path, trim_ws = TRUE, na=NA_bank, sheet = node, guess_max = 1000000, col_types = "text"))
   df=workbook_list[node][[1]]
-  openxlsx::deleteData(wb, sheet = node,rows = 1:(dim(df)[1]+1),cols=1:(dim(df)[2]+1),gridExpand = TRUE)
+  openxlsx::deleteData(wb, sheet = node,rows = 1:(dim(df_size)[1]+1),cols=1:(dim(df_size)[2]+1),gridExpand = TRUE)
   openxlsx::writeData(wb=wb, sheet=node, df)
   openxlsx::saveWorkbook(wb = wb,file = paste(path,output_file,".xlsx",sep = ""), overwrite = T)
 }
