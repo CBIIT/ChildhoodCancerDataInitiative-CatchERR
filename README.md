@@ -1,4 +1,4 @@
-# ChildhoodCancerDataInitiative-CatchERR
+# ChildhoodCancerDataInitiative-CatchERR (ARCHIVED)
 This script will take a CCDI metadata manifest file and try to blindly fix the most common errors before the validation step.
 
 At this time, the script will catch errors for case in enumerated values, white space in values, and incomplete urls for files.
